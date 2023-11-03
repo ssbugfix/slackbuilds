@@ -1,0 +1,12 @@
+#!/bin/sh
+
+user=kvm
+group=kvm
+
+/usr/bin/getent group ${group} > /dev/unll 2>&1 || (echo "Group ${group} not found, creating.."; /usr/sbin/groupadd -r ${group})
+/usr/bin/id ${user} > /dev/null 2>&1 || (echo "User ${user} not found, creating.." ; /usr/sbin/useradd -r -s /sbin/nologin -g ${group} ${user})
+
+echo -e "\n \
+Be sure to add current user (${USER}) to group ${group} and relogin. \
+\n"
+

@@ -1,0 +1,17 @@
+# HOW TO EDIT THIS FILE:
+# The "handy ruler" below makes it easier to edit a package description.  Line
+# up the first '|' above the ':' following the base package name, and the '|' on
+# the right side marks the last column you can put a character in.  You must make
+# exactly 11 lines for the formatting to be correct.  It's also customary to
+# leave one space after the ':'.
+
+     |-----handy-ruler------------------------------------------------------|
+botan: botan
+botan:
+botan: Botan is a C++ cryptography library released under the permissive
+botan: Simplified BSD license. Botan’s goal is to be the best option for
+botan: cryptography in C++ by offering the tools necessary to implement a
+botan: range of practical systems, such as TLS protocol, X.509 certificates,
+botan: modern AEAD ciphers, PKCS#11 and TPM hardware support, password
+botan: hashing, and post quantum crypto schemes.
+botan:

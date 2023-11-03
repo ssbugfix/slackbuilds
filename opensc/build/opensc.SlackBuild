@@ -1,0 +1,144 @@
+#!/bin/sh
+
+name="opensc"
+version="0.22.0"
+filename="${name}-${version}.tar.gz"
+arch="${ARCH:-`uname -m`}"
+rev="4"
+hostgcc=`gcc -dumpmachine`
+cwd=`pwd`
+tmpdir="/tmp"
+pkgdir="${tmpdir}/${name}-${version}-install"
+
+case "${arch}" in
+  i486|i686)	SLKCFLAGS="-O2 -march=i486 -mtune=i686"
+		SLKLDFLAGS=""; LIBDIRSUFFIX=""
+		;;
+  x86_64)	SLKCFLAGS="-O2 -fPIC"
+		SLKLDFLAGS="-L/usr/lib64"; LIBDIRSUFFIX="64"
+		;;
+  athlon-xp)	SLKCFLAGS="-march=athlon-xp -O3 -pipe -fomit-frame-pointer"
+		SLKLDFLAGS=""; LIBDIRSUFFIX=""
+		;;
+esac
+
+boldecho() {
+	echo -e "\n\033[1m$1\033[0m" && sleep 1
+}
+
+do_exit() {
+	boldecho "Exiting due error or interrupt"
+	exit 1
+}
+
+do_unpack(){
+	test -f ${cwd}/${filename} || return 1
+	boldecho "Unpacking"
+	tar xvfz "${cwd}/${filename}" || return 1
+	return 0
+}
+
+do_configure() {
+	boldecho "Running configure"
+	LDFLAGS="$SLKLDFLAGS" \
+	CFLAGS="$SLKCFLAGS" \
+	CXXFLAGS="$SLKCFLAGS" \
+	./configure \
+		--prefix=/usr \
+		--sysconfdir=/etc \
+		--localstatedir=/var \
+		--libdir=/usr/lib${LIBDIRSUFFIX} \
+		--mandir=/usr/man \
+		--enable-dnie-ui \
+		--host="${hostgcc}" \
+		--build="${hostgcc}" || return 1
+	return 0
+}
+
+do_make() {
+	boldecho "Running make"
+	LDFLAGS="$SLKLDFLAGS" \
+	CFLAGS="$SLKCFLAGS" \
+	CXXFLAGS="$SLKCFLAGS" \
+	make -j 2 || return 1
+	return 0
+}
+
+do_install() {
+	boldecho "Installing"
+	LDFLAGS="$SLKLDFLAGS" \
+	CFLAGS="$SLKCFLAGS" \
+	CXXFLAGS="$SLKCFLAGS" \
+	make DESTDIR="${pkgdir}" install || return 1
+	return 0
+}
+
+do_man() {
+	boldecho "Processing man pages"
+	for i in {1..9} n m
+	do
+		rm -vf ${pkgdir}/usr/man/man${i}/*.gz
+		( test -d ${pkgdir}/usr/man/man${i} && cd ${pkgdir}/usr/man/man${i} && gzip -v * )
+	done
+	return 0
+}
+
+do_doc() {
+	boldecho "Processing docs"
+	mkdir -p ${pkgdir}/usr/doc/${name}-${version}
+	cp -av COPYING NEWS README ${pkgdir}/usr/doc/${name}-${version}
+	cp ${cwd}/${name}.SlackBuild ${pkgdir}/usr/doc/${name}-${version}/${name}.SlackBuild
+}
+
+do_strip(){
+	boldecho "Stripping"
+	find "${pkgdir}" | xargs file | grep "executable" | grep ELF | cut -f 1 -d : | xargs strip -v --strip-unneeded 2> /dev/null
+	find "${pkgdir}" | xargs file | grep "shared object" | grep ELF | cut -f 1 -d : | xargs strip -v --strip-unneeded 2> /dev/null
+	return 0
+}
+
+do_descr() {
+	boldecho "Making description"
+	mkdir -p "${pkgdir}/install"
+	cat ${cwd}/slack-desc > ${pkgdir}/install/slack-desc
+}
+
+do_clean() {
+	rm -rf "${pkgdir}" "${tmpdir}/${name}-${version}"
+}
+
+boldecho "${name}.SlackBuild for ${filename}"
+
+if [ ${UID} != 0 ]; then
+	boldecho "You must be root to use this script" && do_exit
+fi
+
+if [ -d "${tmpdir}/${name}-${version}" ]
+then
+	boldecho "Found previous build directory. Removing."
+	rm -rf "${tmpdir}/${name}-${version}"
+fi
+
+if [ ! -r "${filename}" ]; then
+	boldecho "Cannot locate ${filename}" || do_exit
+fi
+
+trap 'do_clean; do_exit' TERM INT
+
+cd "${tmpdir}" || do_exit
+do_unpack || do_exit
+cd "${name}-${version}" || do_exit
+chown -R root:root . || do_exit
+do_configure || do_exit
+do_make || do_exit
+do_install || do_exit
+do_man
+do_doc
+do_strip
+do_descr
+cd "${pkgdir}" || do_exit
+/sbin/makepkg -l y -c n "${tmpdir}/${name}-`echo ${version} | tr -d '-'`-${arch}-${rev}.txz" || do_exit
+cd "${cwd}" || do_exit
+do_clean
+boldecho "Done"
+exit 0
