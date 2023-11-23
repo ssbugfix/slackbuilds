@@ -1,0 +1,48 @@
+#!/bin/sh
+#
+# /etc/rc.d/rc.nginx
+#
+# Start/stop/restart the nginx web server.
+
+nginx_start()
+{
+	/usr/sbin/nginx -t || exit 1
+	/usr/sbin/nginx -c /etc/nginx/nginx.conf
+}
+
+nginx_stop()
+{
+	kill $(cat /var/run/nginx.pid) || exit 1
+	rm -f /var/run/nginx.pid
+}
+
+nginx_restart()
+{
+	nginx_stop
+	sleep 1
+	nginx_start
+}
+
+nginx_reload()
+{
+	/usr/sbin/nginx -t || exit 1
+	kill -HUP $(cat /var/run/nginx.pid) || exit 1
+}
+
+case "$1" in
+	'start')
+		nginx_start
+		;;
+	'stop')
+		nginx_stop
+		;;
+	'restart')
+		nginx_restart
+		;;
+	'reload')
+		nginx_reload
+		;;
+	*)
+		echo "Usage: \$0 {start|stop|restart}"
+		;;
+esac
